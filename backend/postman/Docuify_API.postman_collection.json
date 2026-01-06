@@ -1,0 +1,318 @@
+{
+  "info": {
+    "_postman_id": "docuify-api-milestone-1",
+    "name": "Docuify API - Milestone 1",
+    "description": "Document Ingestion API - Testing Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Readiness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/ready",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["ready"]
+            }
+          }
+        },
+        {
+          "name": "API Meta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/meta",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "meta"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents - List & Get",
+      "item": [
+        {
+          "name": "List All Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents?skip=0&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Document by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/{{doc_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "{{doc_id}}"]
+            }
+          },
+          "description": "Replace {{doc_id}} with an actual document ID from the list or create response"
+        }
+      ]
+    },
+    {
+      "name": "Documents - Upload PDF",
+      "item": [
+        {
+          "name": "Upload PDF File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/upload",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents - ArXiv Ingestion",
+      "item": [
+        {
+          "name": "Ingest from ArXiv (abs URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arxiv_url\": \"https://arxiv.org/abs/2310.06825\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/arxiv",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "arxiv"]
+            }
+          }
+        },
+        {
+          "name": "Ingest from ArXiv (pdf URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arxiv_url\": \"https://arxiv.org/pdf/2310.06825.pdf\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/arxiv",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "arxiv"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents - URL Ingestion",
+      "item": [
+        {
+          "name": "Ingest from URL (Valid - ArXiv)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdf_url\": \"https://arxiv.org/pdf/2310.06825.pdf\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/url",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "url"]
+            }
+          }
+        },
+        {
+          "name": "SSRF Test - Blocked localhost",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdf_url\": \"http://localhost:8080/admin/secret.pdf\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/url",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "url"]
+            }
+          }
+        },
+        {
+          "name": "SSRF Test - Blocked Private IP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdf_url\": \"http://192.168.1.1/config.pdf\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/url",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "url"]
+            }
+          }
+        },
+        {
+          "name": "Scheme Test - Invalid FTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdf_url\": \"ftp://files.example.com/document.pdf\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/url",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "url"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents - Manage",
+      "item": [
+        {
+          "name": "Retry Failed Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/{{doc_id}}/retry",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "{{doc_id}}", "retry"]
+            }
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/documents/{{doc_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v1", "documents", "{{doc_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "doc_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

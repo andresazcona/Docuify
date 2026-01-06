@@ -11,6 +11,7 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/healthz", response_model=HealthResponse, status_code=status.HTTP_200_OK)
+@router.get("/health", response_model=HealthResponse, status_code=status.HTTP_200_OK)
 async def health_check() -> HealthResponse:
     """
     Health check endpoint.
@@ -26,6 +27,7 @@ async def health_check() -> HealthResponse:
 
 
 @router.get("/readyz", response_model=ReadyResponse, status_code=status.HTTP_200_OK)
+@router.get("/ready", response_model=ReadyResponse, status_code=status.HTTP_200_OK)
 async def readiness_check() -> ReadyResponse:
     """
     Readiness check endpoint.

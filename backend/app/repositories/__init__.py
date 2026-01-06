@@ -1,11 +1,5 @@
-"""Repositories module - Data access layer.
+"""Repositories exports."""
 
-This module will contain repository classes for database operations.
-Repositories provide an abstraction over database models and queries.
-"""
+from app.repositories.document_repository import DocumentRepository
 
-# Future repositories will be implemented here:
-# - DocumentRepository: CRUD operations for documents
-# - ChatRepository: CRUD operations for chats
-# - MessageRepository: CRUD operations for messages
-# - ChunkRepository: CRUD operations for chunks
+__all__ = ["DocumentRepository"]

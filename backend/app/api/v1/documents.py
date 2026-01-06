@@ -1,19 +1,25 @@
-"""Document management endpoints (placeholder)."""
+"""Document management endpoints."""
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError, ServiceUnavailableError
+from app.db import get_db
 from app.domain.schemas import (
     DocumentCreateArxivRequest,
     DocumentCreateResponse,
     DocumentCreateUrlRequest,
     DocumentListResponse,
     DocumentResponse,
-    DocumentStatus,
 )
+from app.services import DocumentService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+def get_document_service() -> DocumentService:
+    """Dependency provider for DocumentService."""
+    return DocumentService()
 
 
 @router.post(
@@ -23,15 +29,11 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 )
 async def create_document_from_arxiv(
     request: DocumentCreateArxivRequest,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
 ) -> DocumentCreateResponse:
-    """
-    Create document from arXiv URL.
-
-    Accepts arXiv abstract or PDF URLs and queues the document for processing.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("ArXiv ingestion not yet implemented")
+    """Create document from arXiv URL (ingestion)."""
+    return await service.create_from_arxiv(request, session)
 
 
 @router.post(
@@ -41,16 +43,11 @@ async def create_document_from_arxiv(
 )
 async def create_document_from_url(
     request: DocumentCreateUrlRequest,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
 ) -> DocumentCreateResponse:
-    """
-    Create document from public PDF URL.
-
-    Downloads PDF from provided URL and queues for processing.
-    Includes SSRF protection.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("URL ingestion not yet implemented")
+    """Create document from public PDF URL with SSRF protection."""
+    return await service.create_from_url(request, session)
 
 
 @router.post(
@@ -60,42 +57,32 @@ async def create_document_from_url(
 )
 async def upload_document(
     file: Annotated[UploadFile, File(description="PDF file to upload")],
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
 ) -> DocumentCreateResponse:
-    """
-    Upload a PDF document.
-
-    Accepts multipart file upload and queues document for processing.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("File upload not yet implemented")
+    """Upload a PDF document."""
+    return await service.create_from_upload(file, session)
 
 
 @router.get("", response_model=DocumentListResponse, status_code=status.HTTP_200_OK)
 async def list_documents(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
 ) -> DocumentListResponse:
-    """
-    List all documents with pagination.
-
-    Returns paginated list of documents with their current status.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("Document listing not yet implemented")
+    """List documents with pagination."""
+    return await service.list_documents(session, limit=limit, offset=offset)
 
 
 @router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
-async def get_document(document_id: str) -> DocumentResponse:
-    """
-    Get document details by ID.
-
-    Returns full document information including status and metadata.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise NotFoundError("Document not found or feature not yet implemented")
+async def get_document(
+    document_id: str,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
+) -> DocumentResponse:
+    """Get document details by ID."""
+    return await service.get_document(session, document_id)
 
 
 @router.post(
@@ -103,24 +90,20 @@ async def get_document(document_id: str) -> DocumentResponse:
     response_model=DocumentCreateResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def retry_document_processing(document_id: str) -> DocumentCreateResponse:
-    """
-    Retry processing for a failed document.
-
-    Re-queues a failed document for processing.
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("Document retry not yet implemented")
+async def retry_document_processing(
+    document_id: str,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
+) -> DocumentCreateResponse:
+    """Retry processing for a failed document."""
+    return await service.retry_document(session, document_id)
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(document_id: str) -> None:
-    """
-    Delete a document.
-
-    Removes document and all associated data (chunks, chats, messages).
-
-    **Status: Not Implemented** - Returns 501 for now.
-    """
-    raise ServiceUnavailableError("Document deletion not yet implemented")
+async def delete_document(
+    document_id: str,
+    session: AsyncSession = Depends(get_db),
+    service: DocumentService = Depends(get_document_service),
+) -> None:
+    """Delete a document and its stored file."""
+    await service.delete_document(session, document_id)

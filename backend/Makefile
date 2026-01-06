@@ -1,14 +1,17 @@
-.PHONY: help install dev test lint format type-check migrate db-upgrade db-downgrade clean docker-up docker-down
+.PHONY: help setup install env dev test test-cov lint format type-check check migrate db-upgrade db-downgrade clean docker-up docker-down up down
 
 help:
 	@echo "Docuify Backend - Available Commands"
 	@echo ""
 	@echo "Setup:"
+	@echo "  make setup        - Install deps and create .env if missing"
 	@echo "  make install       - Install dependencies with Poetry"
 	@echo "  make env          - Copy .env.example to .env"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev          - Run development server with reload"
+	@echo "  make up           - Start PostgreSQL, Redis, Qdrant"
+	@echo "  make down         - Stop all Docker services"
 	@echo "  make docker-up    - Start PostgreSQL, Redis, Qdrant"
 	@echo "  make docker-down  - Stop all Docker services"
 	@echo ""
@@ -27,6 +30,14 @@ help:
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        - Remove cache and temp files"
+	@echo ""
+	@echo "Shortcuts:"
+	@echo "  make up / down    - Aliases for docker-up / docker-down"
+
+setup:
+	poetry install
+	@test -f .env || (cp .env.example .env && echo "Created .env from example")
+	@echo "Setup done. Review .env before running the app."
 
 install:
 	poetry install
@@ -46,6 +57,10 @@ docker-up:
 
 docker-down:
 	docker-compose down
+
+up: docker-up
+
+down: docker-down
 
 test:
 	poetry run pytest -v

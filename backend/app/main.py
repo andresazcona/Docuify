@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
 
     # Initialize database
-    init_db()
+    await init_db()
     logger.info("database_initialized")
 
     yield
