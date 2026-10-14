@@ -1,8 +1,9 @@
 """Database models."""
+
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import JSON, DateTime, Enum, Integer, LargeBinary, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -29,9 +30,7 @@ class Document(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     meta_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -46,9 +45,7 @@ class Chat(Base):
     document_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -61,19 +58,15 @@ class Message(Base):
 
     id: Mapped[str] = mapped_column(String(50), primary_key=True)
     chat_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    role: Mapped[MessageRole] = mapped_column(
-        Enum(MessageRole, native_enum=False), nullable=False
-    )
+    role: Mapped[MessageRole] = mapped_column(Enum(MessageRole, native_enum=False), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     citations_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Chunk(Base):
-    """Chunk model (optional, for storing chunks separately)."""
+    """A passage of a document: its text, page and (optionally) its embedding."""
 
     __tablename__ = "chunks"
 
@@ -81,9 +74,9 @@ class Chunk(Base):
     document_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     locator_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     hash: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

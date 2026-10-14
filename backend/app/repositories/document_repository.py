@@ -1,4 +1,5 @@
 """Repository for document persistence."""
+
 from typing import Any
 
 from sqlalchemy import func, select, update

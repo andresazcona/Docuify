@@ -1,4 +1,5 @@
 """Health check endpoints."""
+
 from datetime import datetime
 
 from fastapi import APIRouter, status

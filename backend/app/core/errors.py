@@ -1,4 +1,5 @@
 """Error handling and exception definitions."""
+
 import uuid
 from typing import Any
 
@@ -61,9 +62,7 @@ class NotFoundError(AppException):
 
     def __init__(self, message: str, resource_type: str | None = None):
         details = (
-            [ErrorDetail(field="resource_type", message=resource_type)]
-            if resource_type
-            else None
+            [ErrorDetail(field="resource_type", message=resource_type)] if resource_type else None
         )
         super().__init__(
             message=message,

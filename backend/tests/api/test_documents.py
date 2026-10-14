@@ -1,4 +1,5 @@
 """Tests for document endpoints."""
+
 import io
 
 import pytest
@@ -6,6 +7,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from app.domain.schemas import DocumentStatus
+from tests.pdfs import make_pdf
 
 
 @pytest.mark.asyncio
@@ -20,9 +22,9 @@ async def test_list_documents_empty(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_create_document_from_upload_success(client: AsyncClient) -> None:
-    """Test successful PDF upload."""
+    """A real PDF is uploaded, indexed and ready."""
     # Create a fake PDF file
-    pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n" + b"Fake PDF content\n%%EOF\n"
+    pdf_bytes = make_pdf(["Quarterly report. Revenue grew by twelve percent."])
     files = {"file": ("test.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
 
     response = await client.post("/api/v1/documents/upload", files=files)
@@ -72,7 +74,7 @@ async def test_delete_document_not_found(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_create_and_get_document(client: AsyncClient) -> None:
     """Test creating and retrieving a document."""
-    pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n" + b"Content\n%%EOF\n"
+    pdf_bytes = make_pdf(["Quarterly report. Revenue grew by twelve percent."])
     files = {"file": ("doc.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
 
     create_response = await client.post("/api/v1/documents/upload", files=files)
@@ -89,7 +91,7 @@ async def test_create_and_get_document(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_retry_document_not_failed(client: AsyncClient) -> None:
     """Test retrying a document that is not failed."""
-    pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n" + b"Content\n%%EOF\n"
+    pdf_bytes = make_pdf(["Quarterly report. Revenue grew by twelve percent."])
     files = {"file": ("doc.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
 
     create_response = await client.post("/api/v1/documents/upload", files=files)
@@ -102,7 +104,7 @@ async def test_retry_document_not_failed(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_delete_document(client: AsyncClient) -> None:
     """Test deleting a document."""
-    pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n" + b"Content\n%%EOF\n"
+    pdf_bytes = make_pdf(["Quarterly report. Revenue grew by twelve percent."])
     files = {"file": ("doc.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
 
     create_response = await client.post("/api/v1/documents/upload", files=files)

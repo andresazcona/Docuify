@@ -1,17 +1,18 @@
 """Alembic environment configuration."""
+
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from app.core.config import get_settings
-from app.db.session import Base
 
 # Import all models to ensure they're registered with Base
 from app.db.models import Chat, Chunk, Document, Message  # noqa: F401
+from app.db.session import Base
 
 # this is the Alembic Config object
 config = context.config

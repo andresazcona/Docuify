@@ -1,4 +1,5 @@
 """Security utilities for SSRF protection and validation."""
+
 import ipaddress
 import re
 from typing import Final

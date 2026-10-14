@@ -1,4 +1,5 @@
 """Core configuration using Pydantic Settings."""
+
 from functools import lru_cache
 from typing import Literal
 
@@ -55,29 +56,23 @@ class Settings(BaseSettings):
     download_timeout_secs: int = 60
     allowed_url_schemes: str = "http,https"
 
-    # LLM Provider
-    llm_provider: Literal["gemini", "openai", "anthropic"] = "gemini"
-    llm_api_key: str = "dummy-llm-key"
-    llm_model: str = "gemini-pro"
-    llm_temperature: float = 0.7
-    llm_max_tokens: int = 2048
+    # Answer generation. "extractive" needs no model and no API key.
+    llm_provider: Literal["extractive", "anthropic", "openai", "ollama"] = "extractive"
+    llm_api_key: str | None = None
+    llm_model: str | None = None
+    llm_base_url: str | None = None  # OpenAI-compatible servers such as Ollama; operator only
+    llm_temperature: float = 0.2
+    llm_max_tokens: int = 1024
+    allow_client_llm_keys: bool = True  # let a request bring its own key in X-LLM-Key
 
-    # Embeddings
-    embedding_provider: Literal["openai", "huggingface"] = "openai"
-    embedding_api_key: str = "dummy-embed-key"
-    embedding_model: str = "text-embedding-3-small"
-    embedding_dim: int = 1536
+    # Dense embeddings. "none" = lexical (BM25) retrieval only.
+    embedding_provider: Literal["none", "fastembed"] = "none"
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-    # RAG Configuration
-    rag_backend: Literal["qdrant", "chroma", "pgvector", "lightrag"] = "qdrant"
+    # Retrieval
     rag_top_k: int = 5
-    rag_score_threshold: float = 0.7
-    chunk_size: int = 1000
-    chunk_overlap: int = 200
-
-    # Qdrant (optional)
-    qdrant_url: str | None = None
-    qdrant_api_key: str | None = None
+    chunk_size: int = 900
+    chunk_overlap: int = 150
 
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -135,7 +130,7 @@ class Settings(BaseSettings):
         return self.environment == "production"
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()

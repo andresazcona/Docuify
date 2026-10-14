@@ -1,4 +1,5 @@
 """Database session management."""
+
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -70,6 +71,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
         finally:
             await session.close()
+
+
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Session factory for code that outlives the request (e.g. streaming responses)."""
+    if _async_session_factory is None:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+    return _async_session_factory
 
 
 async def close_db() -> None:

@@ -1,6 +1,6 @@
 """Document service implementing ingestion flows."""
+
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlparse
 
 import aiofiles
@@ -8,7 +8,6 @@ import httpx
 
 from app.core import (
     ConflictError,
-    NotFoundError,
     ServiceUnavailableError,
     ValidationError,
     generate_secure_id,
@@ -19,28 +18,36 @@ from app.core import (
 )
 from app.db.models import Document
 from app.domain import (
+    DocumentCreateArxivRequest,
     DocumentCreateResponse,
+    DocumentCreateUrlRequest,
     DocumentListResponse,
     DocumentMetadata,
     DocumentResponse,
     DocumentStatus,
-    DocumentCreateArxivRequest,
-    DocumentCreateUrlRequest,
     SourceType,
 )
 from app.repositories import DocumentRepository
+from app.services.ingestion_service import IngestionService
 
 
 class DocumentService:
     """Business logic for document ingestion and management."""
 
-    def __init__(self, repository: DocumentRepository | None = None):
+    def __init__(
+        self,
+        repository: DocumentRepository | None = None,
+        ingestion: IngestionService | None = None,
+    ):
         self.settings = get_settings()
         self.repository = repository or DocumentRepository()
+        self.ingestion = ingestion or IngestionService(self.repository)
         self.logger = get_logger(self.__class__.__name__)
 
     # ---------------------- Public API ----------------------
-    async def create_from_arxiv(self, request: DocumentCreateArxivRequest, session) -> DocumentCreateResponse:
+    async def create_from_arxiv(
+        self, request: DocumentCreateArxivRequest, session
+    ) -> DocumentCreateResponse:
         """Ingest a document from an arXiv URL."""
         try:
             pdf_url, arxiv_id = self._resolve_arxiv_pdf_url(str(request.arxiv_url))
@@ -65,12 +72,7 @@ class DocumentService:
 
         try:
             await self._download_pdf(pdf_url, storage_path)
-            document = await self.repository.update_fields(
-                session,
-                document_id=document.id,
-                status=DocumentStatus.READY,
-                error_message=None,
-            )
+            document = await self._index(session, document.id)
         except (ValidationError, ServiceUnavailableError):
             raise
         except Exception as exc:  # pragma: no cover - logged and re-raised
@@ -79,7 +81,9 @@ class DocumentService:
 
         return DocumentCreateResponse(document_id=document.id, status=document.status)
 
-    async def create_from_url(self, request: DocumentCreateUrlRequest, session) -> DocumentCreateResponse:
+    async def create_from_url(
+        self, request: DocumentCreateUrlRequest, session
+    ) -> DocumentCreateResponse:
         """Ingest a document from a public PDF URL with SSRF guard."""
         try:
             validate_url_for_download(str(request.pdf_url))
@@ -102,12 +106,7 @@ class DocumentService:
 
         try:
             await self._download_pdf(str(request.pdf_url), storage_path)
-            document = await self.repository.update_fields(
-                session,
-                document_id=document.id,
-                status=DocumentStatus.READY,
-                error_message=None,
-            )
+            document = await self._index(session, document.id)
         except (ValidationError, ServiceUnavailableError):
             raise
         except Exception as exc:  # pragma: no cover - logged and re-raised
@@ -134,12 +133,7 @@ class DocumentService:
 
         try:
             await self._write_upload(upload_file, storage_path)
-            document = await self.repository.update_fields(
-                session,
-                document_id=document.id,
-                status=DocumentStatus.READY,
-                error_message=None,
-            )
+            document = await self._index(session, document.id)
         except (ValidationError, ServiceUnavailableError):
             raise
         except Exception as exc:  # pragma: no cover - logged and re-raised
@@ -166,16 +160,12 @@ class DocumentService:
         if document.status not in {DocumentStatus.FAILED}:
             raise ConflictError("Document is not in a retryable (FAILED) state")
 
-        document = await self.repository.update_fields(
-            session,
-            document_id=document.id,
-            status=DocumentStatus.PROCESSING,
-            error_message=None,
-        )
+        document = await self._index(session, document.id)
         return DocumentCreateResponse(document_id=document.id, status=document.status)
 
     async def delete_document(self, session, document_id: str) -> None:
         document = await self.repository.get(session, document_id)
+        await IngestionService.purge(session, document_id)
         await self.repository.delete(session, document_id)
         self._delete_storage(document.storage_path)
 
@@ -265,6 +255,21 @@ class DocumentService:
                     parent.rmdir()
             except Exception:  # pragma: no cover - defensive cleanup
                 self.logger.warning("failed_to_remove_storage", storage_path=storage_path)
+
+    async def _index(self, session, document_id: str) -> Document:
+        """Extract, chunk and embed the stored PDF. Failures mark the document FAILED."""
+        await self.repository.update_fields(
+            session, document_id=document_id, status=DocumentStatus.PROCESSING, error_message=None
+        )
+        try:
+            return await self.ingestion.process(session, document_id)
+        except ValidationError as exc:
+            message = exc.message if hasattr(exc, "message") else str(exc)
+        except Exception as exc:  # unreadable or corrupt PDF, embedding model unavailable...
+            self.logger.warning("indexing_failed", document_id=document_id, error=str(exc))
+            message = "The PDF could not be read. It may be corrupt or protected."
+        await self._mark_failed(session, document_id, message)
+        return await self.repository.get(session, document_id)
 
     async def _mark_failed(self, session, document_id: str, message: str) -> None:
         await self.repository.update_fields(

@@ -1,4 +1,5 @@
 """Domain module exports."""
+
 from app.domain.schemas import (
     ChatAnswerResponse,
     ChatCreateRequest,

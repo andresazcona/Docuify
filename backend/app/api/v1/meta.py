@@ -1,4 +1,5 @@
 """API v1 meta endpoint."""
+
 from fastapi import APIRouter, status
 
 from app.core.config import get_settings
@@ -23,8 +24,10 @@ async def get_api_meta() -> MetaResponse:
             "arxiv_ingestion": True,
             "url_ingestion": True,
             "file_upload": True,
-            "streaming_chat": False,  # Not implemented yet
-            "graph_rag": False,  # Not implemented yet
+            "streaming_chat": True,
+            "dense_retrieval": settings.embedding_provider != "none",
+            "llm_answers": settings.llm_provider != "extractive",
+            "client_llm_keys": settings.allow_client_llm_keys,
         },
         limits={
             "max_upload_mb": settings.max_upload_mb,

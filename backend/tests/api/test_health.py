@@ -1,4 +1,5 @@
 """Tests for health endpoints."""
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient

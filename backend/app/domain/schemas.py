@@ -1,4 +1,5 @@
 """Pydantic schemas for API contracts."""
+
 from datetime import datetime
 from enum import Enum
 from typing import Any
@@ -111,6 +112,7 @@ class DocumentMetadata(BaseModel):
     authors: list[str] | None = None
     publication_date: str | None = None
     pages: int | None = None
+    chunks: int | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -163,9 +165,7 @@ class CitationResponse(BaseModel):
     snippet: str = Field(..., description="Text snippet from source")
     page: int | None = Field(None, description="Page number if available")
     score: float = Field(..., ge=0.0, le=1.0, description="Relevance score")
-    locator: dict[str, Any] | None = Field(
-        None, description="Additional location metadata"
-    )
+    locator: dict[str, Any] | None = Field(None, description="Additional location metadata")
 
 
 class ChatRequest(BaseModel):
