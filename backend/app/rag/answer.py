@@ -7,6 +7,8 @@ from app.rag.text import looks_spanish, tokenize
 
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
+_MIN_WORDS = 4  # shorter "sentences" are almost always headings
+
 NOT_FOUND_EN = "I could not find that in the document."
 NOT_FOUND_ES = "No encontré eso en el documento."
 
@@ -30,7 +32,7 @@ def extractive_answer(question: str, hits: list[Hit], *, max_sentences: int = 3)
     for rank, hit in enumerate(hits):
         for position, sentence in enumerate(_SENTENCE_END.split(" ".join(hit.text.split()))):
             overlap = len(terms & set(tokenize(sentence)))
-            if overlap:
+            if overlap and len(sentence.split()) >= _MIN_WORDS:
                 scored.append((overlap, rank, position, sentence))
 
     if not scored:
@@ -38,6 +40,9 @@ def extractive_answer(question: str, hits: list[Hit], *, max_sentences: int = 3)
 
     best_overlap = max(item[0] for item in scored)
     relevant = [item for item in scored if item[0] >= max(1, best_overlap * 0.75)]
-    relevant.sort(key=lambda item: (-item[0], item[1], item[2]))  # best first, earlier chunks win
+    # Best coverage first; among equals the better-ranked chunk, then the more concise sentence.
+    relevant.sort(key=lambda item: (-item[0], item[1], len(item[3].split()), item[2]))
+    if best_overlap == 1 and len(terms) > 1:
+        max_sentences = 1  # only one word of the question matched: do not pad with guesses
     chosen = sorted(relevant[:max_sentences], key=lambda item: (item[1], item[2]))  # read in order
     return "\n".join(f"- {sentence} [{rank + 1}]" for _, rank, _, sentence in chosen)

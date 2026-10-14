@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production", "test"] = "development"
 
     # API
-    api_version: str = "0.1.0"
+    api_version: str = "0.2.0"
     api_title: str = "Docuify API"
     api_prefix: str = "/api/v1"
 
@@ -71,8 +71,8 @@ class Settings(BaseSettings):
 
     # Retrieval
     rag_top_k: int = 5
-    chunk_size: int = 900
-    chunk_overlap: int = 150
+    chunk_size: int = 600
+    chunk_overlap: int = 100
 
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

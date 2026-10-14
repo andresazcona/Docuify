@@ -110,6 +110,30 @@ def test_extractive_answer_cites_the_chunk_it_quotes() -> None:
     assert answer.rstrip().endswith("[1]")
 
 
+def test_headings_are_not_quoted_as_answers() -> None:
+    hits = [
+        Hit("c0", 1, "Remote work. Employees may work remotely up to three days per week.", 1.0)
+    ]
+    answer = extractive_answer("Can I work remotely?", hits)
+    assert "Remote work." not in answer
+    assert "Employees may work remotely" in answer
+
+
+def test_a_weak_match_returns_a_single_sentence_instead_of_padding() -> None:
+    hits = [
+        Hit(
+            "c0",
+            1,
+            "This handbook explains how we work and what we expect from each other. "
+            "Employees may work remotely up to three days per week. "
+            "Use the password manager on every work account.",
+            1.0,
+        )
+    ]
+    answer = extractive_answer("Can I work from home?", hits)  # only "work" matches
+    assert len(answer.splitlines()) == 1 and answer.endswith("[1]")
+
+
 def test_extractive_answer_not_found_in_both_languages() -> None:
     assert extractive_answer("What is the capital of France?", _hits()) == NOT_FOUND_EN
     assert extractive_answer("¿Cuál es la capital de Francia?", _hits()) == NOT_FOUND_ES
