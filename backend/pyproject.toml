@@ -1,8 +1,9 @@
 [tool.poetry]
 name = "docuify-backend"
-version = "0.1.0"
-description = "ChatPDF Backend API"
-authors = ["Your Name <your.email@example.com>"]
+version = "0.2.0"
+description = "Chat with your PDFs: cited answers, hybrid retrieval, optional LLM"
+authors = ["Andres Azcona"]
+license = "MIT"
 readme = "README.md"
 packages = [{include = "app"}]
 

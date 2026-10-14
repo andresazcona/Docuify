@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-14
+
+### Added
+- Document chat: PDFs are extracted page by page, chunked (never across pages), optionally embedded and stored.
+- Hybrid retrieval: BM25 plus cosine similarity over local fastembed vectors, merged with reciprocal rank fusion.
+- Cited answers. Extractive mode (no model, no key) by default; Anthropic, OpenAI and Ollama as options.
+- Per-request API keys through X-LLM-* headers. Clients never choose the endpoint (SSRF).
+- Chat endpoints (create, history, ask) and SSE streaming.
+- React frontend (ES/EN) with citations, source panel and answer-engine settings.
+- Dockerfiles, docker compose (PostgreSQL, API, nginx), smoke test and CI.
+
+### Changed
+- Settings for LLM and embeddings replaced (the Gemini/Qdrant placeholders were never wired).
+- Tests use real PDFs; unreadable PDFs now end as FAILED with a reason.
+- Tooling: current ruff config, pip-based install (poetry.lock removed).
+
 ## [0.1.0] - 2026-01-06
 
 ### ✨ Added - Milestone 1: Document Ingestion Complete

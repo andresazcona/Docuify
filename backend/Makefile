@@ -1,102 +1,38 @@
-.PHONY: help setup install env dev test test-cov lint format type-check check migrate db-upgrade db-downgrade clean docker-up docker-down up down
+.PHONY: help install dev test lint format check samples clean
 
 help:
-	@echo "Docuify Backend - Available Commands"
-	@echo ""
-	@echo "Setup:"
-	@echo "  make setup        - Install deps and create .env if missing"
-	@echo "  make install       - Install dependencies with Poetry"
-	@echo "  make env          - Copy .env.example to .env"
-	@echo ""
-	@echo "Development:"
-	@echo "  make dev          - Run development server with reload"
-	@echo "  make up           - Start PostgreSQL, Redis, Qdrant"
-	@echo "  make down         - Stop all Docker services"
-	@echo "  make docker-up    - Start PostgreSQL, Redis, Qdrant"
-	@echo "  make docker-down  - Stop all Docker services"
-	@echo ""
-	@echo "Testing & Quality:"
-	@echo "  make test         - Run all tests"
-	@echo "  make test-cov     - Run tests with coverage"
-	@echo "  make lint         - Check code with ruff"
-	@echo "  make format       - Format code with ruff"
-	@echo "  make type-check   - Run mypy type checking"
-	@echo "  make check        - Run all checks (lint + type + test)"
-	@echo ""
-	@echo "Database:"
-	@echo "  make migrate      - Create new migration"
-	@echo "  make db-upgrade   - Apply migrations"
-	@echo "  make db-downgrade - Rollback last migration"
-	@echo ""
-	@echo "Cleanup:"
-	@echo "  make clean        - Remove cache and temp files"
-	@echo ""
-	@echo "Shortcuts:"
-	@echo "  make up / down    - Aliases for docker-up / docker-down"
-
-setup:
-	poetry install
-	@test -f .env || (cp .env.example .env && echo "Created .env from example")
-	@echo "Setup done. Review .env before running the app."
+	@echo "Docuify backend"
+	@echo "  make install   install the package with the local-embeddings extra and dev tools"
+	@echo "  make dev       run the API with reload on :8000"
+	@echo "  make test      run the test suite"
+	@echo "  make lint      ruff check + format check"
+	@echo "  make format    apply ruff formatting"
+	@echo "  make check     lint + tests"
+	@echo "  make samples   regenerate ../samples/*.pdf"
+	@echo "Whole stack: docker compose up --build (from the repository root)"
 
 install:
-	poetry install
-
-env:
-	cp .env.example .env
-	@echo "Created .env file - Please edit with your configuration"
+	pip install -e ".[embeddings]" pytest pytest-asyncio pytest-cov ruff httpx
 
 dev:
-	poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-docker-up:
-	docker-compose up -d postgres redis qdrant
-	@echo "Services started. Waiting for health checks..."
-	@sleep 5
-	@docker-compose ps
-
-docker-down:
-	docker-compose down
-
-up: docker-up
-
-down: docker-down
+	uvicorn app.main:app --reload --port 8000
 
 test:
-	poetry run pytest -v
-
-test-cov:
-	poetry run pytest --cov=app --cov-report=html --cov-report=term
+	pytest -q
 
 lint:
-	poetry run ruff check app/ tests/
+	ruff check .
+	ruff format --check .
 
 format:
-	poetry run ruff format app/ tests/
-	poetry run ruff check --fix app/ tests/
+	ruff check . --fix
+	ruff format .
 
-type-check:
-	poetry run mypy app/
+check: lint test
 
-check: lint type-check test
-	@echo "All checks passed!"
-
-migrate:
-	@read -p "Enter migration message: " msg; \
-	poetry run alembic revision --autogenerate -m "$$msg"
-
-db-upgrade:
-	poetry run alembic upgrade head
-
-db-downgrade:
-	poetry run alembic downgrade -1
+samples:
+	python scripts/make_samples.py
 
 clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete
-	rm -rf htmlcov/ .coverage
-	@echo "Cleaned up cache and temp files"
+	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage htmlcov dev.db
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +
