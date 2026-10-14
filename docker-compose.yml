@@ -1,0 +1,57 @@
+# docker compose up --build   ->   http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: docuify
+      POSTGRES_PASSWORD: docuify # local demo only: the database is not published to the host
+      POSTGRES_DB: docuify
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docuify"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://docuify:docuify@db:5432/docuify
+      SECRET_KEY: ${SECRET_KEY:-change-me-change-me-change-me-change-me}
+      ALLOWED_ORIGINS: http://localhost:8080
+      # Answers are extractive (no model, no key) unless you turn an LLM on:
+      #   LLM_PROVIDER: ollama                       (with the "ollama" profile below)
+      #   LLM_BASE_URL: http://ollama:11434/v1
+      #   LLM_MODEL: llama3.2
+      # Or let each visitor bring their own key from the UI (ALLOW_CLIENT_LLM_KEYS, on by default).
+      LLM_PROVIDER: ${LLM_PROVIDER:-extractive}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes:
+      - docuify-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Optional local LLM:  docker compose --profile ollama up -d
+  #                      docker compose exec ollama ollama pull llama3.2
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  db-data:
+  docuify-data:
+  ollama-data:
