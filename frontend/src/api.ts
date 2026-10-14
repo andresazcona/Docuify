@@ -55,7 +55,7 @@ export interface StreamHandlers {
   onError: (message: string) => void;
 }
 
-/** Ask a question and stream the answer. The key, if any, is sent only to the Docuify API. */
+/** Ask a question and stream the answer. The key, if any, is sent only to the Folio API. */
 export async function streamChat(
   req: { documentId: string; chatId: string | null; message: string },
   engine: EngineSettings,

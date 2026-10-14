@@ -1,4 +1,4 @@
-# Docuify
+# Folio
 
 Chat with your PDFs. Every answer comes with the page it was found on, it works in English and Spanish, and it runs with **no API key** unless you want one.
 
@@ -7,13 +7,15 @@ Chat with your PDFs. Every answer comes with the page it was found on, it works 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-[![CI](https://github.com/andresazcona/Docuify/actions/workflows/ci.yml/badge.svg)](https://github.com/andresazcona/Docuify/actions/workflows/ci.yml)
+[![CI](https://github.com/andresazcona/Folio/actions/workflows/ci.yml/badge.svg)](https://github.com/andresazcona/Folio/actions/workflows/ci.yml)
 
-![Docuify answering a question with a cited source](docs/02-answer-with-sources.png)
+![Folio answering a question with a cited source](docs/02-answer-with-sources.png)
+
+<p align="center"><img src="docs/03-spanish-dark.png" alt="Folio in Spanish, dark theme" width="49%"> <img src="docs/05-mobile.png" alt="Folio on a phone" width="22%"> <img src="docs/06-mobile-sources.png" alt="Sources drawer on a phone" width="22%"></p>
 
 ## Why
 
-Handbooks, contracts and papers are long and nobody reads them end to end. Docuify lets you ask a question and shows you the exact passage that answers it, so you can check it instead of trusting it.
+Handbooks, contracts and papers are long and nobody reads them end to end. Folio lets you ask a question and shows you the exact passage that answers it, so you can check it instead of trusting it.
 
 - **Cited answers.** Each answer links to the passage and page it came from, with a relevance bar.
 - **Works without AI.** The default engine quotes the most relevant sentences of your document: free, private, and it cannot invent anything. Turn on an LLM if you want prose.
@@ -21,7 +23,7 @@ Handbooks, contracts and papers are long and nobody reads them end to end. Docui
 - **Spanish and English**, in the interface and in the documents, with accent-insensitive matching.
 - **Streams as it answers** (server-sent events) and can be stopped mid-way.
 
-![Docuify in Spanish](docs/03-spanish.png)
+The interface comes in light and dark, adapts to phones (the library and the sources open as drawers) and switches between Spanish and English.
 
 ## Quick start
 
@@ -48,18 +50,18 @@ Without the `[embeddings]` extra, retrieval is keyword-only (BM25), which is alr
 | **Anthropic / OpenAI** | an API key | A natural answer written from the retrieved passages. Each visitor can bring their own key from the settings dialog. |
 | **Ollama or any OpenAI-compatible server** | `LLM_PROVIDER=ollama`, `LLM_BASE_URL` | A fully local LLM. Start it with `docker compose --profile ollama up`. |
 
-When retrieval finds nothing, the LLM is not called: Docuify answers "I could not find that in the document." (in the language of the question) instead of guessing.
+When retrieval finds nothing, the LLM is not called: Folio answers "I could not find that in the document." (in the language of the question) instead of guessing.
 
 ## How it works
 
-![Architecture](docs/diagrams/docuify-1.png)
+![Architecture](docs/diagrams/folio-1.png)
 
 1. **Ingest.** The PDF is validated (type, size, magic bytes, SSRF guard for URLs), its text is extracted page by page, split into ~600 character chunks that never cross a page, embedded locally and stored.
 2. **Retrieve.** A question is scored against the chunks of that document with BM25 and, when embeddings are on, cosine similarity. The two rankings are merged with reciprocal rank fusion, so a question that shares no words with the answer ("time off" vs "vacation") can still find it.
 3. **Answer.** Extractive mode picks the sentences covering the most question terms. LLM mode prompts with numbered passages and asks for `[n]` citations.
 4. **Stream.** The API sends `meta` (citations), `delta` (text) and `done` events. The UI turns `[n]` into chips that scroll to the source passage.
 
-![Question flow](docs/diagrams/docuify-2.png)
+![Question flow](docs/diagrams/folio-2.png)
 
 ### API
 

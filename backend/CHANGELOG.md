@@ -285,7 +285,7 @@ storage/
 
 - [README.md](README.md) - Getting started and API overview
 - [MILESTONE_1_COMPLETE.md](MILESTONE_1_COMPLETE.md) - Detailed completion report
-- [Docuify_API.postman_collection.json](../Docuify_API.postman_collection.json) - Postman collection
+- [Folio_API.postman_collection.json](../Folio_API.postman_collection.json) - Postman collection
 
 ---
 

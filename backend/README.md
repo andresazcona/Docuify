@@ -1,6 +1,6 @@
-# Docuify backend
+# Folio backend
 
-FastAPI service behind [Docuify](../README.md): document ingestion, hybrid retrieval and cited answers.
+FastAPI service behind [Folio](../README.md): document ingestion, hybrid retrieval and cited answers.
 
 ## Run
 

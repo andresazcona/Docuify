@@ -1,4 +1,4 @@
-"""Generate docs/diagrams/docuify.drawio (2 pages). Export PNGs with the diagrams.net viewer.
+"""Generate docs/diagrams/folio.drawio (2 pages). Export PNGs with the diagrams.net viewer.
 
     python docs/diagrams/gen_drawio.py
 """
@@ -6,7 +6,7 @@
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-OUT = Path(__file__).with_name("docuify.drawio")
+OUT = Path(__file__).with_name("folio.drawio")
 
 TITLE = (
     "text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;"
@@ -104,7 +104,7 @@ class Page:
 
 def architecture() -> Page:
     p = Page("Architecture", 1700, 900)
-    p.title("Docuify: architecture", "React · nginx · FastAPI · PostgreSQL · local embeddings · optional LLM")
+    p.title("Folio: architecture", "React · nginx · FastAPI · PostgreSQL · local embeddings · optional LLM")
 
     browser = p.box("client", "Browser", 40, 280, 200, 90, sub="React SPA · ES / EN<br>answers stream in as SSE")
     nginx = p.box("proxy", "nginx", 300, 280, 200, 90, sub="static files + /api proxy<br>buffering off for SSE")

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # API
     api_version: str = "0.2.0"
-    api_title: str = "Docuify API"
+    api_title: str = "Folio API"
     api_prefix: str = "/api/v1"
 
     # Server

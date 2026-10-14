@@ -13,7 +13,7 @@ from app.core.config import get_settings
 def add_app_context(logger: Any, method_name: str, event_dict: EventDict) -> EventDict:
     """Add application context to log events."""
     settings = get_settings()
-    event_dict["service"] = "docuify-backend"
+    event_dict["service"] = "folio-backend"
     event_dict["environment"] = settings.environment
     event_dict["version"] = settings.api_version
     return event_dict

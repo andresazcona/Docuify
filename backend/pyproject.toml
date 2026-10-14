@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "docuify-backend"
+name = "folio-backend"
 version = "0.2.0"
 description = "Chat with your PDFs: cited answers, hybrid retrieval, optional LLM"
 authors = ["Andres Azcona"]

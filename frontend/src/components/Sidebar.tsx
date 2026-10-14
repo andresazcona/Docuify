@@ -1,10 +1,12 @@
 import { useRef, useState } from "react";
 import { addByUrl, listDocuments, uploadDocument } from "../api";
 import type { Messages } from "../i18n";
+import { CloseIcon, FileIcon, LinkIcon, UploadIcon } from "./icons";
 import type { DocumentInfo } from "../types";
 
 interface Props {
   t: Messages;
+  open: boolean;
   docs: DocumentInfo[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -18,7 +20,7 @@ function statusLabel(t: Messages, doc: DocumentInfo): string {
   return t.processing;
 }
 
-export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: Props) {
+export function Sidebar({ t, open, docs, selectedId, onSelect, onChanged, onDelete }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
@@ -42,7 +44,8 @@ export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: 
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${open ? "open" : ""}`}>
+      <h2 className="section-title">{t.library}</h2>
       <div
         className={`drop ${drag ? "over" : ""}`}
         role="button"
@@ -61,7 +64,9 @@ export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: 
           if (file) run(() => uploadDocument(file));
         }}
       >
-        {busy ? t.uploading : t.upload}
+        <UploadIcon />
+        <strong>{busy ? t.uploading : t.upload}</strong>
+        <small>{t.uploadHint}</small>
         <input
           ref={input}
           type="file"
@@ -82,13 +87,16 @@ export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: 
           if (url.trim()) run(() => addByUrl(url).then(() => setUrl("")));
         }}
       >
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={t.urlPlaceholder}
-          aria-label={t.urlPlaceholder}
-        />
+        <span className="field">
+          <LinkIcon />
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={t.urlPlaceholder}
+            aria-label={t.urlPlaceholder}
+          />
+        </span>
         <button disabled={busy || !url.trim()}>{t.add}</button>
       </form>
 
@@ -106,10 +114,15 @@ export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: 
                 onClick={() => onSelect(doc.id)}
                 title={doc.error_message ?? undefined}
               >
-                <span className="doc-name">{doc.original_filename ?? doc.source_ref ?? doc.id}</span>
-                <span className="doc-meta">
-                  <span className={`badge ${doc.status.toLowerCase()}`}>{statusLabel(t, doc)}</span>
-                  {doc.metadata?.pages ? `${doc.metadata.pages} ${t.pages}` : ""}
+                <span className="doc-icon" aria-hidden="true">
+                  <FileIcon />
+                </span>
+                <span className="doc-text">
+                  <span className="doc-name">{(doc.original_filename ?? doc.source_ref ?? doc.id).replace(/\.pdf$/i, "")}</span>
+                  <span className="doc-meta">
+                    <span className={`badge ${doc.status.toLowerCase()}`}>{statusLabel(t, doc)}</span>
+                    {doc.metadata?.pages ? <span>{doc.metadata.pages} {t.pages}</span> : null}
+                  </span>
                 </span>
               </button>
               <button
@@ -117,7 +130,7 @@ export function Sidebar({ t, docs, selectedId, onSelect, onChanged, onDelete }: 
                 aria-label={`${t.remove} ${doc.original_filename ?? ""}`}
                 onClick={() => onDelete(doc.id).catch((e) => setError(String(e.message ?? e)))}
               >
-                ×
+                <CloseIcon />
               </button>
             </li>
           ))}

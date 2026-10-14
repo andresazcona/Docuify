@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { deleteDocument, listDocuments } from "./api";
 import { Chat } from "./components/Chat";
+import { Logo, MenuIcon, MoonIcon, SunIcon } from "./components/icons";
 import { Settings } from "./components/Settings";
 import { Sidebar } from "./components/Sidebar";
+import { Welcome } from "./components/Welcome";
 import { detectLang, messages, type Lang } from "./i18n";
 import type { DocumentInfo, EngineSettings } from "./types";
 
-const ENGINE_KEY = "docuify.engine";
+const ENGINE_KEY = "folio.engine";
+type Theme = "light" | "dark";
 
 function loadEngine(): EngineSettings {
   try {
@@ -18,12 +21,24 @@ function loadEngine(): EngineSettings {
   return { engine: "extractive", apiKey: "", model: "" };
 }
 
+function detectTheme(): Theme {
+  try {
+    const saved = localStorage.getItem("folio.theme");
+    if (saved === "light" || saved === "dark") return saved;
+  } catch {
+    /* blocked storage: follow the system */
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function App() {
   const [lang, setLang] = useState<Lang>(detectLang);
+  const [theme, setTheme] = useState<Theme>(detectTheme);
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [engine, setEngine] = useState<EngineSettings>(loadEngine);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const t = messages[lang];
 
   const refresh = useCallback(async () => {
@@ -36,10 +51,27 @@ export function App() {
     refresh().catch(() => setDocs([]));
   }, [refresh]);
 
+  // Documents still being processed: poll until they settle.
+  const pending = docs.some((d) => d.status !== "READY" && d.status !== "FAILED");
   useEffect(() => {
-    localStorage.setItem("docuify.lang", lang);
+    if (!pending) return;
+    const timer = setInterval(() => refresh().catch(() => undefined), 2000);
+    return () => clearInterval(timer);
+  }, [pending, refresh]);
+
+  useEffect(() => {
+    localStorage.setItem("folio.lang", lang);
     document.documentElement.lang = lang;
   }, [lang]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("folio.theme", theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
 
   useEffect(() => {
     try {
@@ -55,17 +87,24 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="logo" aria-hidden="true" />
+          <button className="icon-btn nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-label={t.library}>
+            <MenuIcon />
+          </button>
+          <Logo />
           <div>
-            <h1>Docuify</h1>
+            <h1>Folio</h1>
             <p>{t.tagline}</p>
           </div>
         </div>
         <div className="topbar-actions">
-          <button className="ghost" onClick={() => setSettingsOpen(true)}>
-            {t.settings}: <strong>{engine.engine === "extractive" ? "extractive" : engine.engine}</strong>
+          <button className="chip" onClick={() => setSettingsOpen(true)} title={t.settings}>
+            <span className={`dot ${engine.engine}`} aria-hidden="true" />
+            {t.engineShort[engine.engine]}
           </button>
-          <button className="ghost" onClick={() => setLang(lang === "es" ? "en" : "es")} aria-label="Language">
+          <button className="icon-btn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={t.theme}>
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
+          <button className="icon-btn lang" onClick={() => setLang(lang === "es" ? "en" : "es")} aria-label="Language">
             {lang === "es" ? "EN" : "ES"}
           </button>
         </div>
@@ -73,20 +112,32 @@ export function App() {
 
       <Sidebar
         t={t}
+        open={navOpen}
         docs={docs}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={(id) => {
+          setSelectedId(id);
+          setNavOpen(false);
+        }}
         onChanged={async (focusId) => {
           await refresh();
-          if (focusId) setSelectedId(focusId);
+          if (focusId) {
+            setSelectedId(focusId);
+            setNavOpen(false);
+          }
         }}
         onDelete={async (id) => {
           await deleteDocument(id);
           await refresh();
         }}
       />
+      {navOpen && <button className="scrim" aria-label={t.close} onClick={() => setNavOpen(false)} />}
 
-      <Chat key={selected?.id ?? "none"} t={t} doc={selected} engine={engine} />
+      {selected ? (
+        <Chat key={selected.id} t={t} doc={selected} engine={engine} />
+      ) : (
+        <Welcome t={t} hasDocs={docs.length > 0} />
+      )}
 
       {settingsOpen && (
         <Settings t={t} value={engine} onChange={setEngine} onClose={() => setSettingsOpen(false)} />

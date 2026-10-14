@@ -3,13 +3,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: docuify
-      POSTGRES_PASSWORD: docuify # local demo only: the database is not published to the host
-      POSTGRES_DB: docuify
+      POSTGRES_USER: folio
+      POSTGRES_PASSWORD: folio # local demo only: the database is not published to the host
+      POSTGRES_DB: folio
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docuify"]
+      test: ["CMD-SHELL", "pg_isready -U folio"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -17,7 +17,7 @@ services:
   api:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://docuify:docuify@db:5432/docuify
+      DATABASE_URL: postgresql+asyncpg://folio:folio@db:5432/folio
       SECRET_KEY: ${SECRET_KEY:-change-me-change-me-change-me-change-me}
       ALLOWED_ORIGINS: http://localhost:8080
       # Answers are extractive (no model, no key) unless you turn an LLM on:
@@ -30,7 +30,7 @@ services:
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
     volumes:
-      - docuify-data:/data
+      - folio-data:/data
     depends_on:
       db:
         condition: service_healthy
@@ -53,5 +53,5 @@ services:
 
 volumes:
   db-data:
-  docuify-data:
+  folio-data:
   ollama-data:

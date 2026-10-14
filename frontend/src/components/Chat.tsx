@@ -1,17 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { streamChat } from "../api";
+import { splitBold, toBlocks } from "../blocks";
 import type { Messages } from "../i18n";
 import { splitCitations } from "../sse";
 import type { ChatMessage, Citation, DocumentInfo, EngineSettings } from "../types";
+import { CloseIcon, FileIcon, Logo, QuoteIcon, SendIcon, StopIcon } from "./icons";
 
 interface Props {
   t: Messages;
-  doc: DocumentInfo | null;
+  doc: DocumentInfo;
   engine: EngineSettings;
 }
 
 let counter = 0;
 const nextId = () => `m${++counter}`;
+
+const docTitle = (doc: DocumentInfo) =>
+  (doc.metadata?.title || doc.original_filename || doc.source_ref || doc.id).replace(/\.pdf$/i, "");
 
 export function Chat({ t, doc, engine }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -19,6 +24,7 @@ export function Chat({ t, doc, engine }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [focus, setFocus] = useState<{ messageId: string; n: number } | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -28,30 +34,17 @@ export function Chat({ t, doc, engine }: Props) {
 
   useEffect(() => () => abort.current?.abort(), []);
 
-  if (!doc) {
-    return (
-      <>
-        <main className="chat empty-state">
-          <p>{t.pickDoc}</p>
-        </main>
-        <aside className="sources">
-          <h2>{t.sources}</h2>
-          <p className="empty">{t.noSources}</p>
-        </aside>
-      </>
-    );
-  }
-
   const lastAnswer = [...messages].reverse().find((m) => m.role === "assistant" && m.citations?.length);
   const sourceOwner = focus ? messages.find((m) => m.id === focus.messageId) : lastAnswer;
+  const citations = sourceOwner?.citations ?? [];
 
   function patch(id: string, change: (m: ChatMessage) => ChatMessage) {
     setMessages((all) => all.map((m) => (m.id === id ? change(m) : m)));
   }
 
-  async function send() {
-    const question = input.trim();
-    if (!question || busy || !doc) return;
+  async function send(text = input) {
+    const question = text.trim();
+    if (!question || busy) return;
     const answerId = nextId();
     setInput("");
     setBusy(true);
@@ -67,11 +60,11 @@ export function Chat({ t, doc, engine }: Props) {
         { documentId: doc.id, chatId, message: question },
         engine,
         {
-          onMeta: (id, citations) => {
+          onMeta: (id, cites) => {
             setChatId(id);
-            patch(answerId, (m) => ({ ...m, citations }));
+            patch(answerId, (m) => ({ ...m, citations: cites }));
           },
-          onDelta: (text) => patch(answerId, (m) => ({ ...m, content: m.content + text })),
+          onDelta: (delta) => patch(answerId, (m) => ({ ...m, content: m.content + delta })),
           onDone: () => undefined,
           onError: (message) => patch(answerId, (m) => ({ ...m, content: message, error: true })),
         },
@@ -88,19 +81,68 @@ export function Chat({ t, doc, engine }: Props) {
   return (
     <>
       <main className="chat">
+        <header className="doc-head">
+          <span className="doc-icon big" aria-hidden="true">
+            <FileIcon />
+          </span>
+          <div className="doc-head-text">
+            <h2 title={docTitle(doc)}>{docTitle(doc)}</h2>
+            <p>
+              {doc.metadata?.pages ? `${doc.metadata.pages} ${t.pages}` : ""}
+              {doc.metadata?.chunks ? ` · ${doc.metadata.chunks} ${t.passages}` : ""}
+            </p>
+          </div>
+          <button className="chip sources-toggle" onClick={() => setSourcesOpen(true)}>
+            <QuoteIcon />
+            {t.openSources}
+            {citations.length > 0 && <b>{citations.length}</b>}
+          </button>
+        </header>
+
         <div className="messages" aria-live="polite">
-          {messages.map((m) => (
-            <div key={m.id} className={`msg ${m.role} ${m.error ? "error" : ""}`}>
-              {m.role === "assistant" && !m.error ? (
-                <Answer message={m} onCite={(n) => setFocus({ messageId: m.id, n })} />
-              ) : (
-                m.content
-              )}
-              {m.role === "assistant" && !m.content && busy && <span className="dots" aria-hidden="true" />}
+          {messages.length === 0 && (
+            <div className="start">
+              <Logo size={36} />
+              <h3>{t.emptyChatTitle}</h3>
+              <div className="suggestions">
+                {t.suggestions.map((s) => (
+                  <button key={s} onClick={() => void send(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
+          {messages.map((m) =>
+            m.role === "user" ? (
+              <div key={m.id} className="turn user">
+                <div className="bubble">{m.content}</div>
+              </div>
+            ) : (
+              <div key={m.id} className={`turn assistant ${m.error ? "error" : ""}`}>
+                <span className="avatar" aria-hidden="true">
+                  <Logo size={26} />
+                </span>
+                <div className="answer">
+                  {m.error ? (
+                    m.content
+                  ) : (
+                    <Answer
+                      message={m}
+                      onCite={(n) => {
+                        setFocus({ messageId: m.id, n });
+                        setSourcesOpen(true);
+                      }}
+                    />
+                  )}
+                  {!m.content && busy && <span className="typing" aria-hidden="true"><i /><i /><i /></span>}
+                </div>
+              </div>
+            ),
+          )}
           <div ref={bottom} />
         </div>
+
         <form
           className="composer"
           onSubmit={(e) => {
@@ -110,20 +152,27 @@ export function Chat({ t, doc, engine }: Props) {
         >
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t.ask} aria-label={t.ask} />
           {busy ? (
-            <button type="button" onClick={() => abort.current?.abort()}>
-              {t.stop}
+            <button type="button" className="send stop" onClick={() => abort.current?.abort()} aria-label={t.stop}>
+              <StopIcon />
             </button>
           ) : (
-            <button disabled={!input.trim()}>{t.send}</button>
+            <button className="send" disabled={!input.trim()} aria-label={t.send}>
+              <SendIcon />
+            </button>
           )}
         </form>
       </main>
 
-      <aside className="sources">
-        <h2>{t.sources}</h2>
-        {sourceOwner?.citations?.length ? (
+      <aside className={`sources ${sourcesOpen ? "open" : ""}`}>
+        <div className="sources-head">
+          <h2>{t.sources}</h2>
+          <button className="icon-btn close-sources" onClick={() => setSourcesOpen(false)} aria-label={t.close}>
+            <CloseIcon />
+          </button>
+        </div>
+        {citations.length ? (
           <ol>
-            {sourceOwner.citations.map((c, i) => (
+            {citations.map((c, i) => (
               <Source key={c.chunk_id} t={t} citation={c} n={i + 1} active={focus?.n === i + 1} />
             ))}
           </ol>
@@ -131,23 +180,45 @@ export function Chat({ t, doc, engine }: Props) {
           <p className="empty">{t.noSources}</p>
         )}
       </aside>
+      {sourcesOpen && <button className="scrim right" aria-label={t.close} onClick={() => setSourcesOpen(false)} />}
+    </>
+  );
+}
+
+/** Plain text with **bold** runs and [n] citation chips. */
+function Inline({ text, max, onCite }: { text: string; max: number; onCite: (n: number) => void }) {
+  return (
+    <>
+      {splitBold(text).map((run, i) => {
+        const parts = splitCitations(run).map((part, j) =>
+          typeof part === "string" ? (
+            <Fragment key={j}>{part}</Fragment>
+          ) : part.n >= 1 && part.n <= max ? (
+            <button key={j} className="cite" onClick={() => onCite(part.n)} aria-label={`${part.n}`}>
+              {part.n}
+            </button>
+          ) : (
+            <Fragment key={j}>[{part.n}]</Fragment>
+          ),
+        );
+        return i % 2 ? <strong key={i}>{parts}</strong> : <Fragment key={i}>{parts}</Fragment>;
+      })}
     </>
   );
 }
 
 function Answer({ message, onCite }: { message: ChatMessage; onCite: (n: number) => void }) {
   const max = message.citations?.length ?? 0;
+  const inline = (text: string) => <Inline text={text} max={max} onCite={onCite} />;
   return (
     <>
-      {splitCitations(message.content).map((part, i) =>
-        typeof part === "string" ? (
-          <span key={i}>{part}</span>
-        ) : part.n >= 1 && part.n <= max ? (
-          <button key={i} className="cite" onClick={() => onCite(part.n)} aria-label={`Source ${part.n}`}>
-            {part.n}
-          </button>
+      {toBlocks(message.content).map((b, i) =>
+        b.kind === "p" ? (
+          <p key={i}>{inline(b.text)}</p>
+        ) : b.kind === "ul" ? (
+          <ul key={i}>{b.items.map((item, j) => <li key={j}>{inline(item)}</li>)}</ul>
         ) : (
-          <span key={i}>[{part.n}]</span>
+          <ol key={i}>{b.items.map((item, j) => <li key={j}>{inline(item)}</li>)}</ol>
         ),
       )}
     </>
@@ -156,6 +227,7 @@ function Answer({ message, onCite }: { message: ChatMessage; onCite: (n: number)
 
 function Source({ t, citation, n, active }: { t: Messages; citation: Citation; n: number; active: boolean }) {
   const ref = useRef<HTMLLIElement>(null);
+  const pct = Math.round(citation.score * 100);
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [active]);
@@ -163,10 +235,11 @@ function Source({ t, citation, n, active }: { t: Messages; citation: Citation; n
     <li ref={ref} className={`source ${active ? "active" : ""}`}>
       <div className="source-head">
         <span className="cite static">{n}</span>
-        {citation.page ? <span>{t.page} {citation.page}</span> : null}
-        <span className="relevance" title={`${t.relevance} ${Math.round(citation.score * 100)}%`}>
-          <i style={{ width: `${Math.round(citation.score * 100)}%` }} />
+        {citation.page ? <span className="page">{t.page} {citation.page}</span> : null}
+        <span className="relevance" title={`${t.relevance} ${pct}%`}>
+          <i style={{ width: `${pct}%` }} />
         </span>
+        <span className="pct">{pct}%</span>
       </div>
       <p>{citation.snippet}</p>
     </li>

@@ -1,4 +1,5 @@
 import type { Messages } from "../i18n";
+import { CloseIcon } from "./icons";
 import type { Engine, EngineSettings } from "../types";
 
 interface Props {
@@ -18,7 +19,12 @@ export function Settings({ t, value, onChange, onClose }: Props) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={t.settings} onClick={(e) => e.stopPropagation()}>
-        <h2>{t.settings}</h2>
+        <div className="modal-head">
+          <h2>{t.settings}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label={t.close}>
+            <CloseIcon />
+          </button>
+        </div>
         {options.map((o) => (
           <label key={o.id} className={`option ${value.engine === o.id ? "selected" : ""}`}>
             <input
@@ -55,7 +61,7 @@ export function Settings({ t, value, onChange, onClose }: Props) {
         )}
 
         <div className="modal-actions">
-          <button onClick={onClose}>{t.close}</button>
+          <button className="primary" onClick={onClose}>{t.close}</button>
         </div>
       </div>
     </div>

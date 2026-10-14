@@ -1,7 +1,7 @@
 .PHONY: help install dev test lint format check samples clean
 
 help:
-	@echo "Docuify backend"
+	@echo "Folio backend"
 	@echo "  make install   install the package with the local-embeddings extra and dev tools"
 	@echo "  make dev       run the API with reload on :8000"
 	@echo "  make test      run the test suite"

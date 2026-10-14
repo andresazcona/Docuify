@@ -21,11 +21,11 @@ ENV PYTHONUNBUFFERED=1 \
     RELOAD=false
 COPY --from=build /install /usr/local
 COPY --from=build /models /models
-RUN useradd --system --uid 10001 --create-home docuify \
+RUN useradd --system --uid 10001 --create-home folio \
     && mkdir -p /data/storage \
-    && chown -R docuify /data /models
-USER docuify
-WORKDIR /home/docuify
+    && chown -R folio /data /models
+USER folio
+WORKDIR /home/folio
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=5 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"
