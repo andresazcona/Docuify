@@ -9,7 +9,7 @@ Chat with your PDFs. Every answer comes with the page it was found on, it works 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 [![CI](https://github.com/andresazcona/Folio/actions/workflows/ci.yml/badge.svg)](https://github.com/andresazcona/Folio/actions/workflows/ci.yml)
 
-![Folio answering a question with a cited source](docs/02-answer-with-sources.png)
+![Folio: upload a PDF, ask, follow the citation to the exact passage](docs/demo.gif)
 
 <p align="center"><img src="docs/03-spanish-dark.png" alt="Folio in Spanish, dark theme" width="49%"> <img src="docs/05-mobile.png" alt="Folio on a phone" width="22%"> <img src="docs/06-mobile-sources.png" alt="Sources drawer on a phone" width="22%"></p>
 
